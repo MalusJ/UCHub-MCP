@@ -4,6 +4,10 @@ fastmcp>=0.1.0
 
 # USB device enumeration (cross-platform)
 pyusb>=1.2.1
+libusb-package>=1.0.26.3
+
+# USB serial device operation
+pyserial>=3.5
 
 # Optional: testing utilities (if you plan to write tests)
 pytest>=7.0.0
