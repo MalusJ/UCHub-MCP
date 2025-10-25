@@ -1,0 +1,14 @@
+# Core MCP framework
+mcp>=0.1.0
+fastmcp>=0.1.0
+
+# USB device enumeration (cross-platform)
+pyusb>=1.2.1
+
+# Optional: testing utilities (if you plan to write tests)
+pytest>=7.0.0
+
+
+
+# download mannually or use script for 
+# https://sourceforge.net/projects/libusb-win32/files/libusb-win32-releases/1.2.6.0/

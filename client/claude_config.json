@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "usb-mcp": {
+      "command": "python",
+      "args": ["path/to/your/server/file"],
+      "env": {}
+    }
+  }
+}
