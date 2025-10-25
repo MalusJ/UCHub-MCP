@@ -6,7 +6,7 @@ import requests
 from pydub import AudioSegment  # requires ffmpeg on PATH
 from elevenlabs import ElevenLabs
 from mcp.server.fastmcp import FastMCP
-import voice_util
+
 
 mcp = FastMCP("voice-mcp",instructions="interact with the conencted mic. If the usb mcp server shows that there is a mic connected and I ask you to record. Use this voice mcp server to do that.")
 
