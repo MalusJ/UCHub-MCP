@@ -9,6 +9,14 @@ libusb-package>=1.0.26.3
 # USB serial device operation
 pyserial>=3.5
 
+# Voice
+requests>=2.31.0
+pydub>=0.25.1
+ffmpeg>=1.4
+elevenlabs=2.20.1
+pyinput=1.8.1
+PyAudio=0.2.14                                                                          
+
 # Optional: testing utilities (if you plan to write tests)
 pytest>=7.0.0
 
@@ -16,3 +24,4 @@ pytest>=7.0.0
 
 # download mannually or use script for 
 # https://sourceforge.net/projects/libusb-win32/files/libusb-win32-releases/1.2.6.0/
+# ffmpeg 

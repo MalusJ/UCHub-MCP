@@ -4,6 +4,13 @@
       "command": "python",
       "args": ["path/to/your/server/file"],
       "env": {}
+    },
+    "voice-mcp": {
+      "command": "python",
+      "args": ["path/to/your/server/file"],
+      "env": {
+           "ELEVENLABS_API_KEY": "your-api-key" 
+      }
     }
   }
 }
