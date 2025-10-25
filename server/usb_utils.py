@@ -1,3 +1,4 @@
+import libusb_package
 import usb.core
 import usb.util
 
@@ -22,7 +23,7 @@ def scan_usb_devices():
     ]
     """
     devices = []
-    for dev in usb.core.find(find_all=True):
+    for dev in libusb_package.find(find_all=True):
         manufacturer = _safe_str(dev, dev.iManufacturer) or "Unknown"
         product      = _safe_str(dev, dev.iProduct)      or "Unknown"
         serial       = _safe_str(dev, dev.iSerialNumber)
