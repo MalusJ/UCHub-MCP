@@ -11,6 +11,24 @@
       "env": {
            "ELEVENLABS_API_KEY": "your-api-key" 
       }
+    },
+        "camera-mcp": {
+      "command": "python",
+      "args": ["path/to/your/server"],
+      "env":{
+        "ANTHROPIC_API_KEY": "your-api-key"
+
+      }
+
+    },
+
+    "robot-mcp":{
+            "command": "python",
+      "args": ["path/to/your/server/file"],
+      "env":{
+        "ANTHROPIC_API_KEY": "your-api-key"
+
+      }
     }
   }
 }

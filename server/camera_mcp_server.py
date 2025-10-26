@@ -123,7 +123,7 @@ def _as_int_list(v, *, default_none=False):
 # ---- Tool: analyze_expression ----
 @mcp.tool()
 def camera_tool(
-    device_indices: str = '',  # e.g. "0" or "0,1,2"
+    device_indices: str = 0,  # e.g. "0" or "0,1,2"
     widths: str = 0,  # e.g. "640,640" (optional)
     heights: str = 0, # e.g. "480,480" (optional)
     purpose: str =''  # what Claude should do with the image(s)
@@ -164,6 +164,8 @@ def camera_tool(
         img = _capture_single_frame(cam_indices[0], widths_list[0] if widths_list else 0, heights_list[0] if heights_list else 0)
         img = _resize_if_needed(img, MAX_EDGE)
         cv2.imshow("Captured Frame", np.array(img))  # show the window
+        cv2.waitKey(0)                       # wait for key press (0 = indefinitely)
+        cv2.destroyAllWindows() 
         b64 = _pil_to_base64_jpeg(img, quality=90)
 
         result = _ask_claude(b64, ANTHROPIC_MODEL, purpose)
