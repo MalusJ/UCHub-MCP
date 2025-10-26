@@ -10,7 +10,7 @@ import numpy as np
 
 
 # ---- MCP app setup ----
-mcp = FastMCP("Camera-MCP",instructions="interact with the connected camera. Anything that involves visual would need this. If there is only one camera attached use single_camera tool. If there are more than one camera, use multi_camera tool.")
+mcp = FastMCP("Camera-MCP",instructions="Anything that involves visual would need this.")
 
 # ---- Config via environment ----
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -110,94 +110,65 @@ def _ask_claude(image_b64_jpeg: str, model: str, purpose: str) -> Dict[str, Any]
             pass
     return {"raw": text}
 
+
+def _as_int_list(v, *, default_none=False):
+    # Accepts: 0  | "0,1" | [0,1] | None | ""
+    if v is None or v == "":
+        return [] if default_none else []
+    if isinstance(v, (list, tuple)):
+        return [int(x) for x in v]
+    # fall back to string split (also works for ints via str(v))
+    return [int(tok.strip()) for tok in str(v).split(",") if tok.strip()]
+
 # ---- Tool: analyze_expression ----
 @mcp.tool()
-def single_camera(
-    device_index: int = 0,
-    width: int = 0,
-    height: int = 0,
-    purpose: str =''
+def camera_tool(
+    device_indices: str = '',  # e.g. "0" or "0,1,2"
+    widths: str = 0,  # e.g. "640,640" (optional)
+    heights: str = 0, # e.g. "480,480" (optional)
+    purpose: str =''  # what Claude should do with the image(s)
 ) -> str:
     """
-    Use ONLY when exactly one camera is available.
+    Adaptive camera tool that automatically handles one or multiple cameras.
 
     Args:
-        device_index: OpenCV camera index (default 0).
-        width: Optional capture width; 0 keeps camera default.
-        height: Optional capture height; 0 keeps camera default.
-        purpose: A string describing the intended purpose or task for the captured image.
-
-        Returns:
-            A JSON string containing the fields: label, confidence, scores{...}, and notes.
-            If JSON parsing fails, returns {"raw": "..."} with the raw text response.
-    """
-    if not ANTHROPIC_API_KEY:
-        return json.dumps({"error": "Set ANTHROPIC_API_KEY in your environment."})
-
-    img = _capture_single_frame(device_index, width, height)
-    img = _resize_if_needed(img, MAX_EDGE)
-    cv2.imshow("Captured Frame", np.array(img))  # show the window
-    cv2.waitKey(0)                       # wait for key press (0 = indefinitely)
-    cv2.destroyAllWindows() 
-    b64 = _pil_to_base64_jpeg(img, quality=90)
-
-    result = _ask_claude(b64, ANTHROPIC_MODEL, purpose)
-    return json.dumps(result, ensure_ascii=False)
-
-@mcp.tool()
-def multi_camera(
-    device_indices: str = "",      # e.g. "0,1"
-    widths: str = "",              # e.g. "640,640"  (optional)
-    heights: str = "",             # e.g. "480,480"  (optional)
-    purpose: str = ""              # description of what Claude should do with both images
-) -> str:
-    """
-    Use ONLY when two or more camera indices are provided (e.g., "0,1").
-    Sends ALL frames together to Claude and returns ONE combined result.
-
-    Args:
-        device_indices: Comma-separated camera indices (e.g., "0,1").
-                        If empty, defaults to [0].
-
-        widths:         Comma-separated list of capture widths for each camera.
-                        If fewer values are given, remaining cameras use default width.
-
-        heights:        Comma-separated list of capture heights for each camera.
-                        If fewer values are given, remaining cameras use default height.
-
-        purpose:        A string describing the overall task or analysis purpose
-                        for all captured images.
+        device_index: The devices indices of ALL connected cameras.(`e.g., "0,1"). If there is only on camera connected, pass in zero.
+        
+        width: Comma-separated list of capture widths corresponding to
+                        each camera. If fewer values are provided, remaining
+                        cameras use default width.
+        height: Comma-separated list of capture heights corresponding to
+                        each camera. If fewer values are provided, remaining
+                        cameras use default height.
+        purpose: A string describing the intended purpose or task for the captured image(s).
 
     Returns:
-        A JSON string containing:
-        {
-            "combined_response": {...parsed Claude result...},
-            "errors": [
-                { "camera_index": int, "error": "message" }
-            ]
-        }
-
-        If parsing fails, returns {"raw": "..."} with the unparsed text.
+        For one camera:
+            {"label": ..., "confidence": ..., "notes": ...}
+        For multiple cameras:
+            {"combined_response": {...}, "errors": [...]}
+        If JSON parsing fails, returns {"raw": "..."} with the raw text response.
     """
-    # ---------------------------------------------------------
-    # Environment check
-    # ---------------------------------------------------------
     if not ANTHROPIC_API_KEY:
         return json.dumps({"error": "Set ANTHROPIC_API_KEY in your environment."})
 
-    # ---------------------------------------------------------
-    # Parse inputs
-    # ---------------------------------------------------------
+
     try:
-        cam_indices = [int(x.strip()) for x in device_indices.split(",") if x.strip()] or [0]
-        widths_list = [int(x.strip()) for x in widths.split(",") if x.strip()]
-        heights_list = [int(x.strip()) for x in heights.split(",") if x.strip()]
+        cam_indices = _as_int_list(device_indices) or [0]
+        widths_list  = _as_int_list(widths,  default_none=True)
+        heights_list = _as_int_list(heights, default_none=True)
     except ValueError:
         return json.dumps({"error": "Invalid format: indices, widths, and heights must be integers."})
 
-    # ---------------------------------------------------------
-    # Capture frames
-    # ---------------------------------------------------------
+    if len(cam_indices) == 1:
+        img = _capture_single_frame(cam_indices[0], widths_list[0] if widths_list else 0, heights_list[0] if heights_list else 0)
+        img = _resize_if_needed(img, MAX_EDGE)
+        cv2.imshow("Captured Frame", np.array(img))  # show the window
+        b64 = _pil_to_base64_jpeg(img, quality=90)
+
+        result = _ask_claude(b64, ANTHROPIC_MODEL, purpose)
+        return json.dumps(result, ensure_ascii=False)
+    
     images = []
     errors = []
 
@@ -205,11 +176,12 @@ def multi_camera(
         try:
             w = widths_list[i] if i < len(widths_list) else 0
             h = heights_list[i] if i < len(heights_list) else 0
-
             img = _capture_single_frame(cam_idx, w, h)
             img = _resize_if_needed(img, MAX_EDGE)
+            cv2.imshow("Captured Frame", np.array(img))  # show the window
+            cv2.waitKey(0)                       # wait for key press (0 = indefinitely)
+            cv2.destroyAllWindows() 
             b64 = _pil_to_base64_jpeg(img, quality=90)
-
             images.append({
                 "type": "image",
                 "source": {
@@ -218,18 +190,14 @@ def multi_camera(
                     "data": b64
                 }
             })
-
         except Exception as e:
-            errors.append({
-                "camera_index": cam_idx,
-                "error": str(e)
-            })
+            errors.append({"camera_index": cam_idx, "error": str(e)})
 
     if not images:
-        return json.dumps({"error": "No valid frames captured."})
+        return json.dumps({"error": "No valid frames captured.", "errors": errors})
 
     # ---------------------------------------------------------
-    # Build multi-image request to Claude
+    # Send all images to Claude together
     # ---------------------------------------------------------
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -243,25 +211,21 @@ def multi_camera(
                     "text": (
                         "You are given multiple images captured from different cameras.\n"
                         f"Your task: {purpose}\n"
-                        "Use all images together to form one coherent response."
+                        "Use all images together to produce one coherent JSON response."
                     )
                 }]
             }]
         )
 
         # Extract text
-        parts = []
-        for block in getattr(msg, "content", []) or []:
-            if block.type == "text":
-                parts.append(block.text)
+        parts = [b.text for b in getattr(msg, "content", []) or [] if getattr(b, "type", "") == "text"]
         text = "\n".join(parts).strip()
 
-        # Try to parse JSON if possible
-        start, end = text.find("{"), text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            maybe = text[start:end+1]
+        # Parse JSON if possible
+        s, e = text.find("{"), text.rfind("}")
+        if s != -1 and e != -1 and e > s:
             try:
-                parsed = json.loads(maybe)
+                parsed = json.loads(text[s:e+1])
                 return json.dumps({
                     "combined_response": parsed,
                     "errors": errors
