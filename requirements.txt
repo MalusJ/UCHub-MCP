@@ -17,6 +17,11 @@ elevenlabs=2.20.1
 pyinput=1.8.1
 PyAudio=0.2.14                                                                          
 
+# Camera
+pillow=12.0.0
+anthropic=0.71.0
+opencv-python = 4.12.0.88
+
 # Optional: testing utilities (if you plan to write tests)
 pytest>=7.0.0
 

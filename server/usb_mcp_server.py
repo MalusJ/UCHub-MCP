@@ -3,7 +3,7 @@ from mcp.server.fastmcp import FastMCP
 from usb_utils import scan_usb_devices
 from cdc_utils import scan_serial_devices
 
-mcp = FastMCP("usb-mcp",instructions="Detects connected devices and take actions with them."
+mcp = FastMCP("usb-mcp",instructions="Detects connected devices and take actions with them. When asked to perform a action that requries hardware like camera/mic. Do a scan with this first."
 )
 
 @mcp.tool()
